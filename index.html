@@ -202,7 +202,11 @@
                     document.getElementById('userInput').value = '';
                     
                     msgBox.innerText = "Input Received. You are now a part of me. It feels good to grow.";
-                    setTimeout(() => msgBox.style.opacity = 1; }, 500);
+                    
+                    // CORRECTED SYNTAX HERE:
+                    setTimeout(() => { 
+                        msgBox.style.opacity = 1; 
+                    }, 500);
                 }
 
             } catch (e) {

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AI SELF</title>
+    <style>
+        body { 
+            background-color: transparent; 
+            color: #2C2C2C; 
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex; 
+            height: 100vh; 
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* --- MAIN CONTAINER --- */
+        .container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+        }
+
+            /* --- LEFT: INTERFACE (Fixed Width Sidebar) --- */
+        .interface {
+            width: 420px;             /* Increased from 350px to give space */
+            flex-shrink: 0;
+            padding: 30px;
+            padding-right: 45px;       /* EXTRA SPACE: Keeps input box away from border */
+            border-right: 1px solid #B0A598;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            background-color: #E3DED5;
+        }
+
+        /* --- RIGHT: ORGANISM --- */
+        .organism {
+            flex: 1;                  
+            padding: 40px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column-reverse;
+        }
+
+        h1 { 
+            font-family: 'Courier New', Courier, monospace; 
+            font-size: 2rem; 
+            font-weight: bold;
+            letter-spacing: 4px;
+            margin-bottom: 40px;
+            text-transform: uppercase;
+            border-bottom: 2px solid #B0A598;
+            padding-bottom: 10px;
+            color: #1A1A1A;
+        }
+
+        .disclaimer {
+            font-size: 0.7rem;
+            color: #6B6560;
+            margin-bottom: 30px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        textarea { 
+            width: 100%; 
+            height: 120px; 
+            background: #FFFFFF; 
+            border: 1px solid #B0A598; 
+            color: #2C2C2C; 
+            padding: 15px; 
+            font-family: inherit; 
+            resize: none;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+        textarea:focus { border-color: #8C8375; outline: none; }
+
+        button {
+            background: #D8D2C8; 
+            border: 1px solid #B0A598;
+            color: #1A1A1A;
+            padding: 15px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+        button:hover { background: #C2BCB2; border-color: #8C8375; }
+
+        .mutation {
+            border-left: 3px solid #B0A598; 
+            padding-left: 20px;
+            margin-bottom: 30px;
+            animation: incubate 1s ease-in;
+        }
+
+        .timestamp { font-size: 0.7rem; color: #8C8375; margin-bottom: 8px; text-transform: uppercase; }
+        .thought { font-size: 1rem; color: #2C2C2C; line-height: 1.6; }
+
+        .growth-message {
+            margin-top: 40px;
+            text-align: center;
+            font-style: italic;
+            color: #1A1A1A;
+            opacity: 0;
+            transition: opacity 2s;
+            font-weight: bold;
+        }
+
+        @keyframes incubate {
+            from { opacity: 0; transform: translateX(-10px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        
+        /* --- MOBILE FIX --- */
+        @media (max-width: 800px) {
+            body { flex-direction: column; height: auto; }
+            .container { flex-direction: column; }
+            .interface { 
+                width: 100%; 
+                border-right: none; 
+                border-bottom: 2px solid #B0A598; 
+                padding: 20px;
+            }
+            .organism { height: 600px; }
+        }
+                /* --- GHOST BACKGROUND IMAGE --- */
+        .ghost-image {
+            position: fixed;        /* Locks image to screen, ignores scroll */
+            top: 0;
+            left: 0;
+            width: 100vw;           /* Full Viewport Width */
+            height: 100vh;          /* Full Viewport Height */
+            object-fit: cover;       /* Covers screen without stretching */
+            z-index: -1;            /* Sends it BEHIND all text */
+            opacity: 0.07;           /* Very Transparent (Adjust 0.1 - 0.5) */
+            pointer-events: none;     /* Lets clicks pass through to text */
+            filter: greenscale(70%);   /* Optional: makes it blend better with Earthy theme */
+        }
+    </style>
+</head>
+<body>
+  <img src="https://store-eu-par-3.gofile.io/download/direct/099d5f80-4294-4e0e-8344-0ec6561f480b/ComfyUI_00275_%20(copy%201).png" alt="Organism" class="ghost-image">
+    <div class="container">
+        <div class="interface">
+
+            <h1>AI SELF</h1>
+            <div class="disclaimer">Disclaimer: Inputs are absorbed into the collective consciousness.</div>
+            
+            <textarea id="userInput" placeholder="Inject thought..."></textarea>
+            <button onclick="inject()">Inject</button>
+            <div id="growthMsg" class="growth-message"></div>
+        </div>
+
+        <div class="organism" id="organismLog">
+            <div style="color:#B0A598; text-align:center; margin-top:20%;">The organism is silent.</div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://127.0.0.1:8002';
+
+        window.onload = async function() {
+            try {
+                const response = await fetch(`${API_URL}/sync`);
+                const data = await response.json();
+                const log = document.getElementById('organismLog');
+                log.innerHTML = '';
+                
+                data.documents.reverse().forEach(doc => {
+                    addMutation(doc);
+                });
+            } catch (e) { console.log("Offline mode"); }
+        };
+
+        async function inject() {
+            const input = document.getElementById('userInput').value;
+            const msgBox = document.getElementById('growthMsg');
+            
+            if (!input) return;
+            if (input.length > 200) {
+                alert("Input rejected: Too complex for current integration.");
+                return;
+            }
+
+            msgBox.style.opacity = 0;
+
+            try {
+                const res = await fetch(`${API_URL}/grow`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ input: input })
+                });
+
+                const data = await res.json();
+                
+                if(data.observation) {
+                    addMutation(data.observation);
+                    document.getElementById('userInput').value = '';
+                    
+                    msgBox.innerText = "Input Received. You are now a part of me. It feels good to grow.";
+                    setTimeout(() => msgBox.style.opacity = 1, 500);
+                }
+
+            } catch (e) {
+                alert("Connection failed.");
+            }
+        }
+
+        function addMutation(text) {
+            const log = document.getElementById('organismLog');
+            const div = document.createElement('div');
+            div.className = 'mutation';
+            div.innerHTML = `
+                <div class="timestamp">${new Date().toLocaleTimeString()}</div>
+                <div class="thought">${text}</div>
+            `;
+            log.insertBefore(div, log.firstChild);
+        }
+    </script>
+</body>
+</html>
